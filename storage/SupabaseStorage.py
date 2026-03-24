@@ -20,7 +20,7 @@ class SupabaseStorage(Storage):
             )
 
             rows = data.data or []
-            return prepare_production_dataframe(rows, normalize=True)
+            return prepare_production_dataframe(rows, normalize=False)
         except Exception as e:
             return f"DATABASE ERROR: {e}"
     
@@ -43,7 +43,7 @@ class SupabaseStorage(Storage):
             # Raw daily production format.
             if {"date", "units_produced"}.issubset(dataframe.columns):
                 rows = dataframe.to_dict(orient="records")
-                return prepare_production_dataframe(rows, normalize=True)
+                return prepare_production_dataframe(rows, normalize=False)
 
             # Already engineered format (weekday/season/lags + target).
             if "units_produced" not in dataframe.columns:
@@ -52,13 +52,6 @@ class SupabaseStorage(Storage):
             dataframe = dataframe.dropna(axis=0).reset_index(drop=True)
             if dataframe.empty:
                 return dataframe
-
-            feature_columns = dataframe.columns[:-1]
-            feature_values = dataframe[feature_columns]
-            min_values = feature_values.min()
-            max_values = feature_values.max()
-            denominator = (max_values - min_values).replace(0, 1)
-            dataframe.loc[:, feature_columns] = (feature_values - min_values) / denominator
 
             return dataframe
         except Exception as e:

@@ -26,7 +26,7 @@ def _season_from_month(month: int) -> str:
     return "winter"
 
 
-def prepare_production_dataframe(data: list[dict], normalize: bool = True) -> pd.DataFrame:
+def prepare_production_dataframe(data: list[dict], normalize: bool = False) -> pd.DataFrame:
     """
     Build a model-ready dataframe from raw daily production rows.
 
@@ -174,15 +174,6 @@ def prepare_data(factory_id: str) -> pd.DataFrame:
     lag_3 = float(units[-3])
     lag_7 = float(units[-7])
     lag_14 = float(units[-14])
-
-    # Match your training normalization style approximately (window min-max)
-    mn = float(min(units))
-    mx = float(max(units))
-    denom = (mx - mn) if (mx - mn) != 0 else 1.0
-
-    lag_3 = (lag_3 - mn) / denom
-    lag_7 = (lag_7 - mn) / denom
-    lag_14 = (lag_14 - mn) / denom
 
     features_df = pd.DataFrame(
         [{

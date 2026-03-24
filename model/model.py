@@ -6,6 +6,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
+from sklearn.preprocessing import MinMaxScaler
 from sklearn.model_selection import train_test_split
 from utils.utils import prepare_data
 
@@ -82,6 +83,7 @@ def train_and_evaluate(factory_id: str = "97e90fd2-469a-471b-a824-1e6ac0d5ec93",
     )
 
     regressor = make_pipeline(
+        MinMaxScaler(),
         PolynomialFeatures(degree=degree, include_bias=False),
         LinearRegression(),
     )
