@@ -84,10 +84,10 @@ def prepare_production_dataframe(data: list[dict], normalize: bool = True) -> pd
     ]
     season_names = ["spring", "summer", "autumn", "winter"]
 
-    weekdays = pd.get_dummies(df["date"].dt.day_name().str.lower())
+    weekdays = pd.get_dummies(df["date"].dt.day_name().str.lower(), dtype=int)
     weekdays = weekdays.reindex(columns=weekday_names, fill_value=0)
 
-    seasons = pd.get_dummies(df["date"].dt.month.map(_season_from_month))
+    seasons = pd.get_dummies(df["date"].dt.month.map(_season_from_month), dtype=int)
     seasons = seasons.reindex(columns=season_names, fill_value=0)
 
     df["lag_3"] = df["units_produced"].shift(3)
@@ -108,10 +108,11 @@ def prepare_production_dataframe(data: list[dict], normalize: bool = True) -> pd
 
     if normalize and not processed.empty:
         feature_columns = processed.columns[:-1]
-        feature_values = processed[feature_columns]
+        feature_values = processed[feature_columns].astype(float)
         min_values = feature_values.min()
         max_values = feature_values.max()
         denominator = (max_values - min_values).replace(0, 1)
         processed.loc[:, feature_columns] = (feature_values - min_values) / denominator
+    
 
     return processed

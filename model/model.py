@@ -1,6 +1,5 @@
 import sys
 from pathlib import Path
-
 import joblib
 import pandas as pd
 from sklearn.linear_model import LinearRegression
@@ -49,14 +48,14 @@ def predict(factory_id: str, features_df: pd.DataFrame) -> list:
     return regressor.predict(features_df).tolist()
 
 
-def train_and_evaluate(factory_id: str = "factory_123", degree: int = 2) -> None:
+def train_and_evaluate(factory_id: str = "97e90fd2-469a-471b-a824-1e6ac0d5ec93", degree: int = 2) -> None:
     """Train and save a model for a specific factory."""
     storage = SupabaseStorage()
-    dataframe = storage.fake_data(factory_id)
+    dataframe = storage.get_data(factory_id)
 
     if isinstance(dataframe, str):
         print(f"Warning: {dataframe}. Using fallback fake_data().")
-        dataframe = storage.fake_data()
+        dataframe = storage.get_data(factory_id)
 
     if isinstance(dataframe, str):
         raise RuntimeError(dataframe)
@@ -98,7 +97,7 @@ def train_and_evaluate(factory_id: str = "factory_123", degree: int = 2) -> None
     print(f"\nModel saved to: {model_path}")
 
 if __name__ == "__main__":
-    train_and_evaluate(factory_id="factory_123", degree=2)
+    train_and_evaluate(factory_id="97e90fd2-469a-471b-a824-1e6ac0d5ec93", degree=2)
 
 
 
