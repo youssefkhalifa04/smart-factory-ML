@@ -59,14 +59,14 @@ def predict(factory_id: str, features_df: pd.DataFrame) -> list:
     return p.tolist()
 
 
-def train_and_evaluate(factory_id: str = "97e90fd2-469a-471b-a824-1e6ac0d5ec93", degree: int = 2, features_df: pd.DataFrame = None) -> None:
+def train_and_evaluate(factory_id: str = "97e90fd2-469a-471b-a824-1e6ac0d5ec93", degree: int = 2, features_df: pd.DataFrame = None) -> list:
     """Train and save a model for a specific factory."""
     global storage
     dataframe = storage.get_data(factory_id)
 
     if isinstance(dataframe, str):
         print(f"Warning: {dataframe}. Using fallback fake_data().")
-        dataframe = storage.get_data(factory_id)
+        dataframe = storage.fake_data(factory_id)
 
     if isinstance(dataframe, str):
         raise RuntimeError(dataframe)
@@ -95,28 +95,40 @@ def train_and_evaluate(factory_id: str = "97e90fd2-469a-471b-a824-1e6ac0d5ec93",
     print(f"Mean Squared Error: {mse}")
     print(f"R^2 Score: {r2}")
 
+    if features_df is None:
+        raise ValueError("features_df is required for prediction after training.")
+
     p = regressor.predict(features_df)
     print(f"Predicted production for next day: {p[0]:.2f} units")
     model_path = save_model(regressor, factory_id)
     print(f"\nModel saved to: {model_path}")
+    return p.tolist()
 
-def run(factory_id: str, degree: int = 2 ):
+def run(factory_id: str, degree: int = 2) -> list:
     """Predict if the model isn't outdated, otherwise retrain and predict."""
     global storage
     data = prepare_data(factory_id)
     try:
         model_date_str = storage.last_trained_model(factory_id)
         print(f"Last trained model date string for factory {factory_id}: {model_date_str}")
+
+        if isinstance(model_date_str, str) and model_date_str.startswith("DATABASE ERROR"):
+            raise RuntimeError(model_date_str)
+
+        if model_date_str is None:
+            print(f"No previous model for factory {factory_id}. Training...")
+            return train_and_evaluate(factory_id, degree, data)
+
         model_date = pd.to_datetime(model_date_str, errors="coerce")
         if is_outdated(model_date):
             print(f"Model for factory {factory_id} is outdated. Retraining...")
-            train_and_evaluate(factory_id, degree, data)
+            return train_and_evaluate(factory_id, degree, data)
         else:
             print(f"Model for factory {factory_id} is up-to-date. Making predictions...")
-            predict(factory_id, data)
+            return predict(factory_id, data)
     except Exception as e:
         print(f"Error checking model date: {e}. Proceeding to retrain.")
-        train_and_evaluate(factory_id, degree, data)
+        return train_and_evaluate(factory_id, degree, data)
 
 
     

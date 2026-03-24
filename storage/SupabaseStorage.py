@@ -78,17 +78,17 @@ class SupabaseStorage(Storage):
             rows = data.data or []
             print(f"Last trained model date for factory {factory_id}: {rows[0]['trained_at'] if rows else 'None'}")
             if not rows:
-                return -1  # No model trained yet.
+                return None  # No model trained yet.
 
             return rows[0]["trained_at"]
         except Exception as e:
             return f"DATABASE ERROR: {e}"
         
-    def get_latest_data(self, factory_id: str) -> str:
+    def get_latest_data(self, factory_id: str):
         try:
             data = (
                 sp.table("daily_production")
-                .select("date")
+                .select("date, units_produced")
                 .eq("factory_id", factory_id)
                 .order("date", desc=True)
                 .limit(14)
@@ -97,9 +97,9 @@ class SupabaseStorage(Storage):
 
             rows = data.data or []
             if not rows:
-                return -1  # No data available.
+                return None  # No data available.
 
-            return rows[0]["date"]
+            return rows
         except Exception as e:
             return f"DATABASE ERROR: {e}"
     def push_prediction(self, factory_id: str, prediction: float) -> bool:

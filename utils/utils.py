@@ -1,6 +1,5 @@
 import pandas as pd
-from storage.Storage import SupabaseStorage
-storage = SupabaseStorage()
+
 def dataframe_generator(data: list[dict]) -> pd.DataFrame:
     """
     Convert a list of dictionaries into a pandas DataFrame.
@@ -134,10 +133,13 @@ def is_outdated(model_date: pd.Timestamp, threshold_days: int = 7) -> bool:
 
 def prepare_data(factory_id: str) -> pd.DataFrame:
     """Build one model-ready feature row for next-day prediction."""
+    from storage.SupabaseStorage import SupabaseStorage
+
+    storage = SupabaseStorage()
     latest = storage.get_latest_data(factory_id)
     print(f"Latest data for factory {factory_id}: {latest}")
 
-    if isinstance(latest, str):
+    if isinstance(latest, str) and latest.startswith("DATABASE ERROR"):
         raise RuntimeError(latest)
     if not latest:
         raise ValueError(f"No latest data found for factory {factory_id}.")
