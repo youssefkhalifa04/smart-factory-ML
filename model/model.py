@@ -1,6 +1,7 @@
 import sys
 from pathlib import Path
 import joblib
+import matplotlib.pyplot as plt
 import pandas as pd
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
@@ -30,6 +31,24 @@ except ModuleNotFoundError:
 storage = SupabaseStorage()
 MODELS_DIR = Path(__file__).resolve().parents[1] / "models"
 MODELS_DIR.mkdir(exist_ok=True)
+
+
+def plot_actual_vs_predicted(y_true, y_pred, output_path: Path) -> None:
+    """Save a scatter plot of actual vs predicted values."""
+    plt.figure(figsize=(8, 6))
+    plt.scatter(y_true, y_pred, alpha=0.8, color="royalblue")
+
+    line_min = min(min(y_true), min(y_pred))
+    line_max = max(max(y_true), max(y_pred))
+    plt.plot([line_min, line_max], [line_min, line_max], "r--", linewidth=2)
+
+    plt.title("Actual vs Predicted Values")
+    plt.xlabel("Actual Values")
+    plt.ylabel("Predicted Values")
+    plt.grid(True, alpha=0.4)
+    plt.tight_layout()
+    plt.savefig(output_path, dpi=150)
+    plt.close()
 
 
 def get_model_path(factory_id: str) -> Path:
@@ -92,7 +111,20 @@ def train_and_evaluate(factory_id: str = "97e90fd2-469a-471b-a824-1e6ac0d5ec93",
     y_pred = regressor.predict(X_test)
     mse = mean_squared_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
+    # compare with the last 10 actual values to see if the predictions are reasonable
+    comparison = pd.DataFrame(
+        {
+            "actual": y_test.reset_index(drop=True),
+            "predicted": y_pred,
+        }
+    )
+    
+    print("\nComparison of actual vs predicted values:")
+    print(comparison.head(20))
 
+    plot_path = MODELS_DIR / f"{factory_id}_actual_vs_predicted.png"
+    plot_actual_vs_predicted(y_test, y_pred, plot_path)
+    print(f"Saved evaluation plot to: {plot_path}")
     
     print(f"Mean Squared Error: {mse}")
     print(f"R^2 Score: {r2}")
@@ -122,7 +154,7 @@ def run(factory_id: str, degree: int = 2) -> list:
             return train_and_evaluate(factory_id, degree, data)
 
         model_date = pd.to_datetime(model_date_str, errors="coerce")
-        if is_outdated(model_date):
+        if True or  is_outdated(model_date):
             print(f"Model for factory {factory_id} is outdated. Retraining...")
             return train_and_evaluate(factory_id, degree, data)
         else:
@@ -131,6 +163,8 @@ def run(factory_id: str, degree: int = 2) -> list:
     except Exception as e:
         print(f"Error checking model date: {e}. Proceeding to retrain.")
         return train_and_evaluate(factory_id, degree, data)
+
+
 
 
     
