@@ -83,3 +83,32 @@ class SupabaseStorage(Storage):
             return rows[0]["trained_at"]
         except Exception as e:
             return f"DATABASE ERROR: {e}"
+        
+    def get_latest_data(self, factory_id: str) -> str:
+        try:
+            data = (
+                sp.table("daily_production")
+                .select("date")
+                .eq("factory_id", factory_id)
+                .order("date", desc=True)
+                .limit(14)
+                .execute()
+            )
+
+            rows = data.data or []
+            if not rows:
+                return -1  # No data available.
+
+            return rows[0]["date"]
+        except Exception as e:
+            return f"DATABASE ERROR: {e}"
+    def push_prediction(self, factory_id: str, prediction: float) -> bool:
+        try:
+            sp.table("predictions_log").insert({
+                "factory_id": factory_id,
+                "predicted_units": prediction,
+            }).execute()
+            return True
+        except Exception as e:
+            print(f"DATABASE ERROR: {e}")
+            return False

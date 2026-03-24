@@ -1,6 +1,6 @@
 import pandas as pd
-
-
+from storage.Storage import SupabaseStorage
+storage = SupabaseStorage()
 def dataframe_generator(data: list[dict]) -> pd.DataFrame:
     """
     Convert a list of dictionaries into a pandas DataFrame.
@@ -131,3 +131,74 @@ def is_outdated(model_date: pd.Timestamp, threshold_days: int = 7) -> bool:
         return True
     age = (pd.Timestamp.now() - model_date).days
     return age > threshold_days
+
+def prepare_data(factory_id: str) -> pd.DataFrame:
+    """Build one model-ready feature row for next-day prediction."""
+    latest = storage.get_latest_data(factory_id)
+    print(f"Latest data for factory {factory_id}: {latest}")
+
+    if isinstance(latest, str):
+        raise RuntimeError(latest)
+    if not latest:
+        raise ValueError(f"No latest data found for factory {factory_id}.")
+    if len(latest) < 14:
+        raise ValueError("At least 14 daily records are required to compute lag_14.")
+
+    hist = pd.DataFrame(latest)
+    hist["date"] = pd.to_datetime(hist["date"], errors="coerce")
+    hist["units_produced"] = pd.to_numeric(hist["units_produced"], errors="coerce")
+    hist = hist.dropna(subset=["date", "units_produced"]).sort_values("date").reset_index(drop=True)
+
+    if hist.shape[0] < 14:
+        raise ValueError("Not enough valid records after cleaning to compute lags.")
+
+    next_date = hist["date"].iloc[-1] + pd.Timedelta(days=1)
+    weekday = next_date.day_name().lower()
+
+    def season_from_month(month: int) -> str:
+        if month in (3, 4, 5):
+            return "spring"
+        if month in (6, 7, 8):
+            return "summer"
+        if month in (9, 10, 11):
+            return "autumn"
+        return "winter"
+
+    season = season_from_month(next_date.month)
+
+    # Latest values for lags:
+    # lag_3 uses value from t-3, lag_7 from t-7, lag_14 from t-14
+    units = hist["units_produced"].tolist()
+    lag_3 = float(units[-3])
+    lag_7 = float(units[-7])
+    lag_14 = float(units[-14])
+
+    # Match your training normalization style approximately (window min-max)
+    mn = float(min(units))
+    mx = float(max(units))
+    denom = (mx - mn) if (mx - mn) != 0 else 1.0
+
+    lag_3 = (lag_3 - mn) / denom
+    lag_7 = (lag_7 - mn) / denom
+    lag_14 = (lag_14 - mn) / denom
+
+    features_df = pd.DataFrame(
+        [{
+            "monday": 1.0 if weekday == "monday" else 0.0,
+            "tuesday": 1.0 if weekday == "tuesday" else 0.0,
+            "wednesday": 1.0 if weekday == "wednesday" else 0.0,
+            "thursday": 1.0 if weekday == "thursday" else 0.0,
+            "friday": 1.0 if weekday == "friday" else 0.0,
+            "saturday": 1.0 if weekday == "saturday" else 0.0,
+            "sunday": 1.0 if weekday == "sunday" else 0.0,
+            "spring": 1.0 if season == "spring" else 0.0,
+            "summer": 1.0 if season == "summer" else 0.0,
+            "autumn": 1.0 if season == "autumn" else 0.0,
+            "winter": 1.0 if season == "winter" else 0.0,
+            "lag_3": lag_3,
+            "lag_7": lag_7,
+            "lag_14": lag_14,
+        }]
+    )
+
+    return features_df

@@ -15,3 +15,10 @@ class Storage(ABC):
     @abstractmethod
     def last_trained_model(self, factory_id: str) -> str:
         pass
+    @abstractmethod
+    def get_latest_data(self, factory_id: str) -> str:
+        pass
+    @abstractmethod
+    def push_prediction(self, factory_id: str, prediction: float) -> bool:
+        pass
+    

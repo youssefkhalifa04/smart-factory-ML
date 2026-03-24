@@ -7,7 +7,7 @@ from sklearn.metrics import mean_squared_error, r2_score
 from sklearn.pipeline import make_pipeline
 from sklearn.preprocessing import PolynomialFeatures
 from sklearn.model_selection import train_test_split
-
+from utils.utils import prepare_data
 
 try:
     from storage.SupabaseStorage import SupabaseStorage
@@ -100,46 +100,28 @@ def train_and_evaluate(factory_id: str = "97e90fd2-469a-471b-a824-1e6ac0d5ec93",
     model_path = save_model(regressor, factory_id)
     print(f"\nModel saved to: {model_path}")
 
-def run(factory_id: str, degree: int = 2 , features_df: pd.DataFrame = None):
+def run(factory_id: str, degree: int = 2 ):
     """Predict if the model isn't outdated, otherwise retrain and predict."""
     global storage
+    data = prepare_data(factory_id)
     try:
         model_date_str = storage.last_trained_model(factory_id)
         print(f"Last trained model date string for factory {factory_id}: {model_date_str}")
         model_date = pd.to_datetime(model_date_str, errors="coerce")
         if is_outdated(model_date):
             print(f"Model for factory {factory_id} is outdated. Retraining...")
-            train_and_evaluate(factory_id, degree, features_df)
+            train_and_evaluate(factory_id, degree, data)
         else:
             print(f"Model for factory {factory_id} is up-to-date. Making predictions...")
-            predict(factory_id, features_df)
+            predict(factory_id, data)
     except Exception as e:
         print(f"Error checking model date: {e}. Proceeding to retrain.")
-        train_and_evaluate(factory_id, degree, features_df)
+        train_and_evaluate(factory_id, degree, data)
 
 
     
     
-if __name__ == "__main__":
-    features_df = pd.DataFrame([
-        {
-            "monday": 1.0,
-            "tuesday": 0.0,
-            "wednesday": 0.0,
-            "thursday": 0.0,
-            "friday": 0.0,
-            "saturday": 0.0,
-            "sunday": 0.0,
-            "spring": 0.0,
-            "summer": 1.0,
-            "autumn": 0.0,
-            "winter": 0.0,
-            "lag_3": 0.55,
-            "lag_7": 0.61,
-            "lag_14": 0.49,
-        }
-    ])
-    run(factory_id="97e90fd2-469a-471b-a824-1e6ac0d5ec93", degree=2 , features_df=features_df)
+
 
 
 
