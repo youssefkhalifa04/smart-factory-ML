@@ -12,4 +12,6 @@ class Storage(ABC):
     @abstractmethod
     def fake_data(self, factory_id: str): 
         pass
- 
+    @abstractmethod
+    def last_trained_model(self, factory_id: str) -> str:
+        pass

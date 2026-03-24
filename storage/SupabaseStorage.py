@@ -64,4 +64,22 @@ class SupabaseStorage(Storage):
         except Exception as e:
             return f"DATA PREPARATION ERROR: {e}"
 
- 
+    def last_trained_model(self, factory_id: str) -> str:
+        try:
+            data = (
+                sp.table("predictions_log")
+                .select("trained_at")
+                .eq("factory_id", factory_id)
+                .order("trained_at", desc=True)
+                .limit(1)
+                .execute()
+            )
+
+            rows = data.data or []
+            print(f"Last trained model date for factory {factory_id}: {rows[0]['trained_at'] if rows else 'None'}")
+            if not rows:
+                return -1  # No model trained yet.
+
+            return rows[0]["trained_at"]
+        except Exception as e:
+            return f"DATABASE ERROR: {e}"

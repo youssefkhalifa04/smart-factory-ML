@@ -116,3 +116,18 @@ def prepare_production_dataframe(data: list[dict], normalize: bool = True) -> pd
     
 
     return processed
+
+
+def load_model(factory_id: str):
+    """Load a trained model for a specific factory."""
+    model_path = f"models/{factory_id}.pkl"
+    return pd.read_pickle(model_path)
+
+def is_outdated(model_date: pd.Timestamp, threshold_days: int = 7) -> bool:
+    """Determine if a model is outdated based on its training date."""
+    print(f"Model date: {model_date}")
+    print(f"Current date: {pd.Timestamp.now()}")
+    if pd.isna(model_date):
+        return True
+    age = (pd.Timestamp.now() - model_date).days
+    return age > threshold_days
